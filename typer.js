@@ -1,24 +1,24 @@
 /* The MIT License (MIT)
 
-Copyright (c) 2017 Aaron Cordova
+ Copyright 2018 2017 Aaron Cordova
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE. */
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE. */
 
 (function(root, returnTyper) {
   if (typeof exports === 'object') return module.exports = returnTyper();
@@ -150,7 +150,8 @@ SOFTWARE. */
 
         return nullApi('end');
       },
-      kill: kill
+      kill: kill,
+      stop: stop
     };
 
     // Private functions.
@@ -231,17 +232,17 @@ SOFTWARE. */
       if (!msg && !options) {
         if (isLine) q.push({line: 1});
 
-      // A single options argument has been passed.
+        // A single options argument has been passed.
       } else if (getType(msg) === 'Object') {
         if (isLine || (isCont && msg.container)) q.push(setOptions(msg));
 
-      // Content and a number for speed have been passed.
-      // .line('some content', 100)
-      // .continue('some content', 100)
+        // Content and a number for speed have been passed.
+        // .line('some content', 100)
+        // .continue('some content', 100)
       } else if (!isNaN(options)) {
         q.push({[choice]: msg, speed: checkSpeed(options), html: true});
 
-      // Message with options passed.
+        // Message with options passed.
       } else {
         q.push(setOptions(options, msg));
       }
@@ -252,8 +253,8 @@ SOFTWARE. */
         // `content` is only used when the user has provided
         // a single options argument to `.line`.
         const content = !message && (getType(container) === 'String'
-          ? document.querySelector(container).textContent // A selector was provided.
-          : container.textContent); // A DOM element was provided.
+            ? document.querySelector(container).textContent // A selector was provided.
+            : container.textContent); // A DOM element was provided.
 
         return {
           [choice]: message || content,
@@ -285,14 +286,14 @@ SOFTWARE. */
 
         // Various processing functions.
         item.line ? processLine(item) :
-        item.continue ? processContinue(item) :
-        item.pause ? processPause(item) :
-        item.emit ? processEmit(item) :
-        item.listen ? processListen(item) :
-        item.back ? processBack(item) :
-        item.empty ? processEmpty() :
-        item.run ? processRun(item) :
-        item.end && processEnd(item);
+          item.continue ? processContinue(item) :
+            item.pause ? processPause(item) :
+              item.emit ? processEmit(item) :
+                item.listen ? processListen(item) :
+                  item.back ? processBack(item) :
+                    item.empty ? processEmpty() :
+                      item.run ? processRun(item) :
+                        item.end && processEnd(item);
       }, 0);
     }
     function processLine(item) {
@@ -377,15 +378,19 @@ SOFTWARE. */
 
           // Text node.
           if (obj.content) {
-            obj.parent.innerHTML += obj.content[textCounter++];
-
-            // Finished typing.
-            if (textCounter === obj.content.length) {
-              textCounter = 0;
-              obj = list[objCounter++]
+            if('stop' in item && item.stop === true) {
+              obj.parent.innerHTML = obj.content;
+              obj = list[objCounter++];
+            } else {
+              obj.parent.innerHTML += obj.content[textCounter++];
+              // Finished typing.
+              if (textCounter === obj.content.length) {
+                textCounter = 0;
+                obj = list[objCounter++];
+              }
             }
 
-          // Void & non-void element nodes.
+            // Void & non-void element nodes.
           } else {
             obj.parent.appendChild(obj.voidNode || obj.newNode);
             obj = list[objCounter++];
@@ -414,7 +419,7 @@ SOFTWARE. */
               content: node.textContent
             });
 
-          // Non-void elements.
+            // Non-void elements.
           } else if (node.childNodes.length) {
             // 1. Clone to an empty node.
             let newNode = document.createElement(name);
@@ -427,7 +432,7 @@ SOFTWARE. */
             arr.push({parent, newNode});
             arr = arr.concat(createTypingArray(node.childNodes, newNode));
 
-          // Void elements.
+            // Void elements.
           } else if (q.voids.includes(name)) {
             arr.push({
               parent,
@@ -449,14 +454,22 @@ SOFTWARE. */
 
           let piece = msg[counter];
 
-          // Avoid HTML parsing on supplied arrays.
-          if (getType(msg) !== 'String') {
-            div.textContent = piece;
-            piece = div.innerHTML;
-          }
+          if ('stop' in item && item.stop) {
+            piece = msg;
+            counter = msg.length;
 
-          q.newDiv.innerHTML += piece;
-          counter++;
+            q.newDiv.innerHTML = piece;
+          } else {
+
+            // Avoid HTML parsing on supplied arrays.
+            if (getType(msg) !== 'String') {
+              div.textContent = piece;
+              piece = div.innerHTML;
+            }
+
+            q.newDiv.innerHTML += piece;
+            counter++;
+          }
           qIterator(item.speed, doStuff);
         }
 
@@ -635,6 +648,14 @@ SOFTWARE. */
       q.cb(); // Run the callback provided.
     }
 
+    function stop() {
+      q.forEach(element => {
+        if ('speed' in element) {
+          element.speed = 0;
+        }
+        element.stop = true;
+      });
+    }
 
     // The kill switch.
     // Used for both killing all Typers with the `killTyper` event
@@ -664,7 +685,7 @@ SOFTWARE. */
       // Replace our public API - `typerObj` - with the nullified version.
       Object.keys(typerObj).forEach(key => {
         // If `.end` is called, we still want `.kill` to be callable as well.
-        if (key === 'kill' && method === 'end') return;
+        if ( ['kill', 'stop'].indexOf(key) !== -1 && method === 'end') return;
         typerObj[key] = message.bind(null, key);
       });
 
