@@ -379,7 +379,11 @@
           // Text node.
           if (obj.content) {
             if('stop' in item && item.stop === true) {
-              obj.parent.innerHTML = obj.content;
+              if (!('lastLineCleared' in item)) {
+                obj.parent.innerHTML = '';
+                item.lastLineCleared = true;
+              }
+              obj.parent.innerHTML += obj.content;
               obj = list[objCounter++];
             } else {
               obj.parent.innerHTML += obj.content[textCounter++];
