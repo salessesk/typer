@@ -38,7 +38,6 @@ gulp.task('uglify', function(done) {
       toplevel: true,
       if_return: true,
       join_vars: true,
-      cascade: true,
       reduce_vars: true,
       warnings: true,
       passes: 3
@@ -49,9 +48,13 @@ gulp.task('uglify', function(done) {
     output: {},
     sourceMap: false, // default
     toplevel: true // default
-  }).code;
+  });
 
-  fs.writeFileSync('typer.min.js', results);
+  if (!("code" in results)) {
+    console.error('Error during uglify "%s"', results);
+  }
+
+  fs.writeFileSync('typer.min.js', results.code);
   done();
 });
 
